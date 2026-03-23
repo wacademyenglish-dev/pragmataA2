@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOLFSTATION | Pragmata (A2)</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        void: '#040B16',
+                        panel: '#0B1426',
+                        holoCyan: '#00F0FF',
+                        alertRed: '#FF003C',
+                        lunarWhite: '#F8FAFC',
+                        sysGreen: '#39FF14'
+                    },
+                    fontFamily: {
+                        title: ['Rajdhani', 'sans-serif'],
+                        body: ['Inter', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 20px rgba(0, 240, 255, 0.4)',
+                        'neon-red': '0 0 20px rgba(255, 0, 60, 0.5)',
+                        'neon-green': '0 0 20px rgba(57, 255, 20, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* LUNAR AESTHETIC */
+        body { 
+            background-color: #040B16; 
+            color: #F8FAFC; 
+            overflow-x: hidden; 
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none; z-index: 9998; opacity: 0.2;
+        }
+
+        .hud-panel {
+            background: rgba(11, 20, 38, 0.85);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+        }
+
+        .game-card {
+            background: rgba(15, 25, 45, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            position: relative;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .game-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+            background: #00F0FF; opacity: 0.6; border-radius: 4px 0 0 4px;
+        }
+
+        /* JIT Vocab Word */
+        .jit-word {
+            position: relative; display: inline-block; cursor: pointer;
+            color: #00F0FF; font-weight: 800; border-bottom: 2px dashed #00F0FF;
+            transition: all 0.2s ease; padding-bottom: 2px;
+        }
+        .jit-word:hover { color: #fff; text-shadow: 0 0 15px #00F0FF; background: rgba(0, 240, 255, 0.1); }
+        .jit-word.active { background: #00F0FF; color: #040B16; border-bottom: none; border-radius: 4px; padding: 2px 6px; }
+
+        /* Drills & Buttons */
+        .combat-btn { transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
+        .combat-btn:hover:not(:disabled) { background: rgba(0, 240, 255, 0.1); border-color: #00F0FF; transform: translateY(-2px); box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+        .combat-btn.correct { background: #00F0FF; color: #040B16; font-weight: bold; border-color: #00F0FF; box-shadow: 0 0 20px rgba(0, 240, 255, 0.4); }
+        .combat-btn.wrong { background: #FF003C; color: #FFFFFF; border-color: #FF003C; opacity: 0.6; }
+
+        /* NEW MECHANICS STYLES */
+        
+        /* M1: Bug Hunter */
+        .bug-word { cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; border: 1px solid transparent; display: inline-block; margin: 0 2px; }
+        .bug-word:hover:not(.locked) { background: rgba(0, 240, 255, 0.2); border-color: #00F0FF; }
+        .bug-word.bug-found { background: rgba(255, 0, 60, 0.4); border-color: #FF003C; color: #fff; text-decoration: line-through; }
+        .bug-word.bug-wrong { background: rgba(255, 255, 255, 0.2); opacity: 0.5; }
+        
+        /* M2: Sentence Builder */
+        .build-word { cursor: pointer; transition: all 0.2s; }
+        .build-word:hover { transform: scale(1.05); box-shadow: 0 0 10px rgba(0,240,255,0.3); }
+        .build-slot { min-height: 50px; border: 2px dashed rgba(0,240,255,0.3); transition: all 0.3s; }
+        .build-slot.complete-correct { border-style: solid; border-color: #00F0FF; background: rgba(0,240,255,0.1); }
+        .build-slot.complete-wrong { border-style: solid; border-color: #FF003C; background: rgba(255,0,60,0.1); }
+
+        /* M3: Terminal Auth */
+        .auth-valid:hover:not(:disabled) { background: rgba(57, 255, 20, 0.1); border-color: #39FF14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.3); }
+        .auth-corrupt:hover:not(:disabled) { background: rgba(255, 0, 60, 0.1); border-color: #FF003C; box-shadow: 0 0 15px rgba(255, 0, 60, 0.3); }
+
+        /* M4: Time Attack */
+        .timer-track { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 20px; }
+        .timer-fill { height: 100%; background: #00F0FF; width: 100%; }
+        .timer-anim { animation: shrinkBar 8s linear forwards; }
+        @keyframes shrinkBar { 
+            0% { width: 100%; background: #00F0FF; } 
+            50% { background: #FFD700; } 
+            100% { width: 0%; background: #FF003C; } 
+        }
+
+        /* M6: Slot Machine */
+        .slot-btn { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; background: #040B16; border: 2px solid #00F0FF; color: #00F0FF; transition: all 0.1s; user-select: none; }
+        .slot-btn:active { transform: scale(0.95); }
+        .slot-btn.locked { background: #00F0FF; color: #040B16; pointer-events: none; }
+
+        /* STT Box */
+        .stt-box {
+            background: linear-gradient(90deg, rgba(0, 240, 255, 0.1) 0%, rgba(0,0,0,0) 100%);
+            border-left: 4px solid #00F0FF;
+        }
+
+        .drawer { transition: transform 0.4s cubic-bezier(0.77, 0, 0.175, 1); }
+
+        /* Animations */
+        @keyframes glitch { 0% { transform: translate(0) } 25% { transform: translate(-2px, 2px) } 75% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
+        .damage-flash { animation: glitch 0.3s; box-shadow: inset 0 0 60px rgba(255, 0, 60, 0.4) !important; border-color: #FF003C !important; }
+        .xp-flash { box-shadow: inset 0 0 60px rgba(0, 240, 255, 0.3) !important; border-color: #00F0FF !important; }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .slide-up { animation: slideUp 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Sliders */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 24px; width: 12px;
+            background: #00F0FF; cursor: pointer; margin-top: -10px;
+            box-shadow: 0 0 15px #00F0FF; border-radius: 2px;
+        }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #040B16; }
+        ::-webkit-scrollbar-thumb { background: #00F0FF; border-radius: 3px; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="font-body antialiased flex flex-col h-screen overflow-hidden selection:bg-holoCyan selection:text-void">
+
+    <div class="scanlines"></div>
+
+    <!-- HUD (WOLFSTATION) -->
+    <header class="fixed top-0 w-full z-50 hud-panel px-6 py-4 flex justify-between items-center border-b border-holoCyan/30">
+        <div class="flex items-center gap-4">
+            <i class="fa-solid fa-satellite text-holoCyan text-2xl drop-shadow-neon-cyan animate-pulse"></i>
+            <span class="font-title text-3xl tracking-widest text-lunarWhite uppercase">Wolfstation</span>
+            <span class="px-2 py-1 text-[10px] font-mono border border-holoCyan text-holoCyan rounded bg-holoCyan/10 hidden md:block">A2</span>
+        </div>
+        
+        <div class="flex items-center gap-8 font-mono text-sm">
+            <div class="flex flex-col items-end">
+                <span class="text-gray-400 text-[10px] tracking-widest mb-1 uppercase">Oxygen (HP)</span>
+                <div class="flex items-center gap-3">
+                    <div class="w-32 h-2 bg-gray-900 rounded-full overflow-hidden border border-white/10">
+                        <div id="hp-bar" class="h-full bg-holoCyan transition-all duration-300 shadow-neon-cyan" style="width: 100%;"></div>
+                    </div>
+                    <span id="hp-text" class="text-xl font-title text-holoCyan tracking-widest">100</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 hidden md:flex">
+                <span class="text-lunarWhite tracking-widest text-[10px] uppercase">Data (XP)</span>
+                <span id="xp-text" class="text-lunarWhite text-lg font-bold">0</span>
+            </div>
+            <button onclick="toggleFullScreen()" class="w-10 h-10 rounded border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
+                <i class="fa-solid fa-expand text-gray-400"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN STAGE -->
+    <main id="engine-stage" class="flex-grow relative pt-24 pb-24 overflow-y-auto w-full z-10 flex flex-col items-center"></main>
+
+    <!-- JIT VOCAB PANEL (Right) -->
+    <div id="jit-panel" class="fixed right-0 top-20 bottom-24 w-[380px] hud-panel border-l border-holoCyan/30 z-[5000] translate-x-full drawer p-6 flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.8)]">
+        <div class="flex justify-between items-center mb-6 border-b border-holoCyan/20 pb-4">
+            <h3 class="font-mono text-holoCyan text-sm tracking-widest uppercase font-bold"><i class="fa-solid fa-database mr-2"></i>Lore Intel</h3>
+            <button onclick="closeJIT()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times text-xl"></i></button>
+        </div>
+        <div id="jit-content" class="flex-grow overflow-y-auto pr-2 scrollbar-hide"></div>
+    </div>
+
+    <!-- TACTICAL BOARD (Right) -->
+    <div id="tactical-board" class="fixed right-0 top-0 h-full w-[420px] bg-void border-l border-alertRed/50 z-[6000] translate-x-full drawer flex flex-col shadow-[-20px_0_50px_rgba(0,0,0,0.9)]">
+        <div class="p-6 hud-panel flex justify-between items-center border-b border-alertRed/30">
+            <h2 class="font-title text-3xl tracking-wider text-white"><i class="fa-solid fa-pen-nib text-alertRed mr-3"></i>Tactical Board</h2>
+            <button onclick="toggleDrawer('tactical-board')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-chevron-right text-xl"></i></button>
+        </div>
+        <div class="p-4 bg-alertRed/5 border-b border-alertRed/20 flex gap-4">
+            <button onclick="clearNotes()" class="text-xs font-mono font-bold text-alertRed uppercase tracking-widest hover:text-white transition-colors"><i class="fa-solid fa-trash mr-1"></i>Clear Data</button>
+        </div>
+        <textarea id="t-notes" class="flex-grow w-full bg-transparent p-6 text-white font-mono text-base resize-none focus:outline-none" placeholder="> Input live corrections, vocabulary translations, or whiteboard notes here..."></textarea>
+    </div>
+
+    <!-- LESSON MAP (Left) -->
+    <div id="lesson-map" class="fixed left-0 top-0 h-full w-[350px] bg-void border-r border-white/10 z-[6000] -translate-x-full drawer flex flex-col shadow-[20px_0_50px_rgba(0,0,0,0.9)]">
+        <div class="p-6 hud-panel flex justify-between items-center border-b border-white/10">
+            <div>
+                <h2 class="font-title text-3xl tracking-wider text-white uppercase">Mission Log</h2>
+                <p class="font-mono text-xs text-gray-500 uppercase tracking-widest mt-1">37 Nodes • A2</p>
+            </div>
+            <button onclick="toggleDrawer('lesson-map')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-chevron-left text-xl"></i></button>
+        </div>
+        <div id="map-nodes" class="p-4 flex flex-col gap-2 overflow-y-auto scrollbar-hide"></div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <footer class="fixed bottom-0 w-full z-50 hud-panel border-t border-holoCyan/30 px-6 py-4 flex justify-between items-center">
+        <button onclick="toggleDrawer('lesson-map')" class="text-gray-400 hover:text-white transition-colors flex items-center gap-3 font-mono text-xs uppercase tracking-widest font-bold">
+            <i class="fa-solid fa-list-ul text-lg"></i> <span class="hidden sm:inline">Nodes</span>
+        </button>
+        
+        <div class="flex items-center gap-8">
+            <button onclick="prevStep()" id="btn-prev" class="text-gray-400 hover:text-holoCyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <i class="fa-solid fa-backward-step text-2xl"></i>
+            </button>
+            <div class="text-center w-24">
+                <span id="current-step-display" class="font-title text-4xl text-white tracking-widest drop-shadow-[0_0_8px_rgba(0,240,255,0.5)]">01</span>
+                <span class="text-gray-500 font-title text-2xl">/ 37</span>
+            </div>
+            <button onclick="nextStep()" id="btn-next" class="text-white hover:text-holoCyan transition-colors drop-shadow-neon-cyan disabled:opacity-30">
+                <i class="fa-solid fa-forward-step text-2xl"></i>
+            </button>
+        </div>
+
+        <button onclick="toggleDrawer('tactical-board')" class="text-gray-400 hover:text-alertRed transition-colors flex items-center gap-3 font-mono text-xs uppercase tracking-widest font-bold">
+            <span class="hidden sm:inline">Board</span> <i class="fa-solid fa-chalkboard text-lg"></i>
+        </button>
+    </footer>
+
+    <!-- ENGINE LOGIC -->
+    <script>
+        // 1. STATE & DATABASES
+        let state = { hp: 100, xp: 0, current: 0 };
+        let activeTimer = null;
+        let builtSentences = {};
+
+        const intelDB = {
+            "moonquake": { emoji: "🌑", title: "Moonquake", type: "Noun", meaning: "Like an earthquake, but it happens on the Moon.", example: "The moonquake struck and destroyed the base.", followUp: "Have you ever felt an earthquake?" },
+            "depart": { emoji: "🚀", title: "Depart", type: "Verb", meaning: "To leave a place and start a journey.", example: "I was preparing to depart for Earth.", followUp: "What time do you depart for work/school every day?" },
+            "lousy": { emoji: "👎", title: "Lousy", type: "Adjective", meaning: "Very bad or poor quality.", example: "You'd make a lousy friend.", followUp: "What is something that puts you in a lousy mood?" },
+            "shelter": { emoji: "🏠", title: "Shelter", type: "Noun", meaning: "A safe place that protects you from bad weather or danger.", example: "We are your companion for all things shelter.", followUp: "Where is your favorite shelter when you need to relax?" },
+            "team": { emoji: "🤝", title: "Team", type: "Noun", meaning: "A group of people working together.", example: "We are a team, right?", followUp: "Do you prefer working in a team or alone?" },
+            
+            // Grammar
+            "going_to": { emoji: "📅", title: "Going To", type: "Grammar", meaning: "Used to talk about a future PLAN or INTENTION.", example: "I am going to Earth.", followUp: "What are you going to do this weekend?" },
+            "lets": { emoji: "💡", title: "Let's", type: "Grammar", meaning: "Short for 'Let us'. Used to make a suggestion to do something together.", example: "Let's go together.", followUp: "Make a suggestion! 'Let's...'" }
+        };
+
+        const lessonData = [
+            // 1. INSTRUCTOR
+            {
+                title: "Instructor's Guide",
+                html: `
+                    <div class="w-full max-w-3xl mx-auto px-4 py-8 fade-in">
+                        <div class="game-card p-10 rounded-2xl relative border-t-4 border-holoCyan">
+                            <span class="absolute -top-3 left-6 bg-void px-4 text-holoCyan font-mono text-xs font-bold uppercase tracking-widest border border-holoCyan/30 rounded-full py-1">Teacher Only</span>
+                            <h2 class="font-title text-4xl mb-6 text-white tracking-widest uppercase">A2: Pragmata Protocol</h2>
+                            <div class="space-y-4 font-body text-gray-300 text-lg">
+                                <p><strong class="text-white">Goal:</strong> Teach "Going to" for future plans/intentions and "Let's" for suggestions.</p>
+                                <p><strong class="text-white">Theme:</strong> Space, escaping danger, AI companions, and moving to a new home.</p>
+                                <p><strong class="text-white">Update:</strong> The Drills section is now an interactive "Gauntlet" featuring Time-Attacks, Bug Hunting, Sentence Builders and RPG choices!</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            // 2. COVER
+            {
+                title: "Mission Cover",
+                html: `
+                    <div class="w-full h-full flex flex-col items-center justify-center text-center px-4 fade-in">
+                        <div class="w-full max-w-2xl aspect-video mb-8 rounded-xl shadow-[0_20px_50px_rgba(0,240,255,0.2)] overflow-hidden border border-white/10 relative group">
+                            <img src="https://images.unsplash.com/photo-1614729939124-032d0b56c9ce?auto=format&fit=crop&q=80&w=1000" alt="Space" class="absolute inset-0 w-full h-full object-cover z-10 opacity-60">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center z-20">
+                                <h1 class="font-title text-7xl md:text-9xl text-white tracking-widest drop-shadow-[0_5px_15px_rgba(0,0,0,1)] uppercase">Pragmata</h1>
+                            </div>
+                        </div>
+                        <p class="text-gray-400 text-xl mb-8 font-mono uppercase tracking-widest">A New Life on Earth</p>
+                        <div class="flex gap-4">
+                            <span class="bg-void text-white border border-white/20 px-6 py-2 rounded text-sm font-bold uppercase tracking-widest">A2 Pre-Int</span>
+                            <span class="bg-holoCyan/10 text-holoCyan border border-holoCyan/30 px-6 py-2 rounded text-sm font-bold uppercase tracking-widest">Going To / Let's</span>
+                        </div>
+                    </div>
+                `
+            },
+            // 3-5. WARMUP
+            {
+                title: "Warmup 1",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in flex flex-col items-center">
+                        <div class="text-center mb-8"><h2 class="font-mono font-bold text-sm text-gray-500 uppercase tracking-widest">Initialization I</h2></div>
+                        <div class="game-card p-12 rounded-2xl text-center w-full shadow-[0_10px_40px_rgba(0,240,255,0.15)] border-t-4 border-holoCyan">
+                            <i class="fa-solid fa-earth-americas text-6xl text-white mb-6"></i>
+                            <p class="mb-10 font-title text-5xl md:text-6xl tracking-wide text-white uppercase">Would you like to travel to <span class="text-holoCyan">Space</span>?</p>
+                            <div class="stt-box p-6 bg-white/5 text-left rounded-xl">
+                                <span class="text-xs font-mono text-holoCyan block mb-2 uppercase tracking-widest"><i class="fa-solid fa-microphone mr-2"></i>Speak:</span>
+                                <p class="text-white text-xl font-medium">"Yes, I would love to go to space because..." / "No, it's too dangerous!"</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Warmup 2",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in flex flex-col items-center">
+                        <div class="text-center mb-8"><h2 class="font-mono font-bold text-sm text-gray-500 uppercase tracking-widest">Initialization II</h2></div>
+                        <div class="game-card p-12 rounded-2xl text-center w-full border-t-4 border-alertRed">
+                            <i class="fa-solid fa-house-chimney-crack text-6xl text-alertRed mb-6 drop-shadow-neon-red"></i>
+                            <p class="mb-10 font-title text-5xl md:text-6xl tracking-wide text-white uppercase">Is it hard to leave your <span class="text-alertRed">home</span> to live in a new city?</p>
+                            <div class="stt-box p-6 bg-white/5 text-left rounded-xl border-l-alertRed">
+                                <span class="text-xs font-mono text-alertRed block mb-2 uppercase tracking-widest"><i class="fa-solid fa-microphone mr-2"></i>Speak:</span>
+                                <p class="text-white text-xl font-medium">"Yes, it's hard because you miss your..." / "No, I like new adventures."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Warmup 3",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in flex flex-col items-center">
+                        <div class="text-center mb-8"><h2 class="font-mono font-bold text-sm text-gray-500 uppercase tracking-widest">Initialization III</h2></div>
+                        <div class="game-card p-12 rounded-2xl text-center w-full border-t-4 border-white">
+                            <i class="fa-solid fa-robot text-6xl text-white mb-6"></i>
+                            <p class="mb-10 font-title text-5xl md:text-6xl tracking-wide text-white uppercase">Do you think <span class="text-gray-400">Robots/AI</span> can be good friends?</p>
+                            <div class="stt-box p-6 bg-white/5 text-left rounded-xl border-l-white">
+                                <span class="text-xs font-mono text-gray-400 block mb-2 uppercase tracking-widest"><i class="fa-solid fa-microphone mr-2"></i>Speak:</span>
+                                <p class="text-white text-xl font-medium">"Maybe in the future..." / "No, they don't have real feelings."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            // 6. VOCABULARY INTRO
+            {
+                title: "Data Decryption",
+                html: `
+                    <div class="w-full h-full flex flex-col max-w-5xl mx-auto px-4 py-8 fade-in">
+                        <div class="text-center mb-10">
+                            <h2 class="font-title text-6xl text-white mb-2 tracking-widest uppercase">Data Decryption</h2>
+                            <p class="text-gray-400 font-mono text-sm uppercase">Click the cyan words to translate the scenario.</p>
+                        </div>
+                        
+                        <div class="flex-grow game-card p-10 md:p-14 rounded-2xl shadow-2xl flex flex-col justify-center w-full border-l-4 border-holoCyan">
+                            <p class="font-body text-2xl leading-relaxed text-gray-200 mb-8">
+                                An astronaut is on the Moon. A <span class="jit-word" onclick="revealIntel('moonquake', this)">moonquake</span> destroys the base.
+                            </p>
+                            <p class="font-body text-2xl leading-relaxed text-gray-200 mb-8">
+                                He needs to <span class="jit-word" onclick="revealIntel('depart', this)">depart</span> and go to Earth. 
+                            </p>
+                            <p class="font-body text-2xl leading-relaxed text-gray-200 mb-8">
+                                He meets a little girl (is she a hologram?) and a robot that provides <span class="jit-word" onclick="revealIntel('shelter', this)">shelter</span>. 
+                            </p>
+                            <p class="font-body text-2xl leading-relaxed text-gray-200">
+                                They must escape the monsters and work together as a <span class="jit-word" onclick="revealIntel('team', this)">team</span>.
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+            // 7. PRE-WATCH DISCUSSION (NEW)
+            {
+                title: "Expectations",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in flex flex-col items-center">
+                        <div class="text-center mb-8"><h2 class="font-mono font-bold text-sm text-gray-500 uppercase tracking-widest">Before we watch</h2></div>
+                        <div class="game-card p-12 rounded-2xl w-full text-center shadow-[0_10px_40px_rgba(0,240,255,0.15)] border-t-4 border-holoCyan">
+                            <i class="fa-solid fa-gamepad text-6xl text-white mb-6"></i>
+                            <p class="mb-6 font-title text-4xl md:text-5xl tracking-wide text-white uppercase">The game is called <span class="text-holoCyan">Pragmata</span> and takes place on the Moon.</p>
+                            <p class="font-body text-xl text-gray-400 mb-10">Look at the cover image. What kind of game do you think this is?</p>
+                            <div class="stt-box p-6 bg-white/5 text-left rounded-xl">
+                                <span class="text-xs font-mono text-holoCyan block mb-2 uppercase tracking-widest"><i class="fa-solid fa-microphone mr-2"></i>Speak:</span>
+                                <p class="text-white text-xl font-medium">"I think it's an action game / horror game because..."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            // 8. PRE-WATCH
+            {
+                title: "Target Lock",
+                html: `
+                    <div class="w-full h-full flex flex-col items-center justify-center text-center px-4 fade-in">
+                        <i class="fa-solid fa-crosshairs text-7xl text-holoCyan mb-8 animate-pulse drop-shadow-neon-cyan"></i>
+                        <h2 class="font-title text-6xl text-white mb-6 tracking-widest uppercase">Accessing Memory</h2>
+                        <p class="font-body text-2xl text-gray-400 max-w-2xl mb-12">Watch the trailer. Look at the little girl. Do you think she is a real human or an AI?</p>
+                        <button onclick="nextStep()" class="bg-holoCyan/10 border border-holoCyan text-holoCyan font-bold text-xl rounded px-12 py-4 hover:bg-holoCyan hover:text-black transition-all shadow-neon-cyan uppercase font-mono tracking-widest">Play Video</button>
+                    </div>
+                `
+            },
+            // 9. VIDEO
+            {
+                title: "The Video",
+                html: `
+                    <div class="w-full max-w-5xl mx-auto px-4 py-8 fade-in h-full flex flex-col justify-center">
+                        <div class="relative w-full aspect-video rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/10 bg-black">
+                            <iframe class="w-full h-full" src="https://www.youtube.com/embed/oncaa_fMsyw?start=26&rel=0&modestbranding=1" title="Pragmata Trailer" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                        <p class="text-center text-gray-500 mt-6 font-mono text-sm uppercase tracking-widest"><i class="fa-solid fa-video mr-2"></i>Pragmata (Capcom)</p>
+                    </div>
+                `
+            },
+            // 10. POST-WATCH ANALYSIS
+            {
+                title: "Post-Watch",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in flex flex-col items-center">
+                        <h2 class="font-title text-6xl text-white mb-10 tracking-widest uppercase">Scene Analysis</h2>
+                        <div class="game-card p-12 rounded-2xl w-full text-left shadow-xl border-t-4 border-holoCyan">
+                            <p class="font-body text-2xl text-white mb-8">What does the little girl want?</p>
+                            <div class="bg-black/50 p-6 rounded-xl border border-white/10 mb-8">
+                                <p class="text-white text-xl">She says: "I want to go to <strong class="text-holoCyan">Earth</strong>."</p>
+                            </div>
+                            <div class="stt-box p-6 bg-white/5 rounded-xl">
+                                <span class="text-xs font-mono text-holoCyan block mb-2 uppercase tracking-widest"><i class="fa-solid fa-microphone mr-2"></i>Speak:</span>
+                                <p class="text-white text-xl font-medium">Do you think the girl is a robot/hologram or a real human? Why?</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            // 11. GAMEPLAY IMPRESSIONS
+            {
+                title: "Gameplay Review",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in flex flex-col items-center">
+                        <h2 class="font-title text-6xl text-white mb-10 tracking-widest uppercase">The Review</h2>
+                        <div class="game-card p-12 rounded-2xl w-full text-left shadow-xl border-t-4 border-alertRed">
+                            <p class="font-body text-2xl text-gray-300 mb-8">We saw a lot of action, aliens, and futuristic armor in this trailer.</p>
+                            <div class="stt-box p-6 bg-white/5 rounded-xl border-l-alertRed">
+                                <span class="text-xs font-mono text-alertRed block mb-2 uppercase tracking-widest"><i class="fa-solid fa-microphone mr-2"></i>Speak:</span>
+                                <p class="text-white text-xl font-medium mb-4">What did you think of the graphics and the gameplay? Would you play this game?</p>
+                                <p class="text-alertRed font-mono text-sm italic">"I think the graphics are... The gameplay looks... I would/wouldn't play it because..."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            // 12-15. GRAMMAR: GOING TO / LET'S
+            {
+                title: "Grammar: Going To (+)",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in">
+                        <div class="text-center mb-10">
+                            <h2 class="font-title text-6xl text-white tracking-widest mb-4 uppercase">Future Intentions</h2>
+                            <p class="text-gray-400 font-mono text-sm uppercase">Talking about your plans.</p>
+                        </div>
+                        <h3 class="font-bold text-3xl text-holoCyan mb-6 font-mono border-b border-white/10 pb-4">1. BE + GOING TO 🚀</h3>
+                        <div class="game-card p-10 rounded-2xl shadow-xl">
+                            <p class="text-xl text-white/80 mb-6 font-medium">We use <strong class="text-holoCyan">Going to + Verb</strong> when we already have a plan for the future.</p>
+                            <div class="bg-black/30 p-8 rounded-xl border border-white/5 mb-8 flex flex-col items-center text-center">
+                                <p class="text-3xl font-bold text-white mb-4">"I <span class="text-holoCyan">am going to</span> Earth."</p>
+                                <p class="text-white/70 text-lg">(= This is my plan. My bags are packed.)</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Grammar: Going To (?)",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in">
+                        <div class="text-center mb-10">
+                            <h2 class="font-title text-6xl text-white tracking-widest mb-4 uppercase">Future Intentions</h2>
+                        </div>
+                        <h3 class="font-bold text-3xl text-alertRed mb-6 font-mono border-b border-white/10 pb-4">2. Questions ❓</h3>
+                        <div class="game-card p-10 rounded-2xl shadow-xl border-l-4 border-alertRed">
+                            <p class="text-xl text-white/80 mb-6 font-medium">To make a question, move the Verb To Be (Am/Is/Are) to the front.</p>
+                            <div class="bg-black/30 p-8 rounded-xl border border-white/5 mb-8 flex flex-col items-center text-center">
+                                <p class="text-3xl font-bold text-white mb-4">"<span class="text-alertRed">Are</span> you <span class="text-alertRed">going to</span> stay here?"</p>
+                                <p class="text-white/70 text-lg">"What <span class="text-alertRed">are</span> you <span class="text-alertRed">going to</span> do?"</p>
+                            </div>
+                            <div class="stt-box p-6 bg-white/5 rounded-xl border-l-alertRed">
+                                <span class="text-xs font-mono text-alertRed block mb-2 uppercase tracking-widest">Speak:</span>
+                                <p class="text-white text-lg">What are you going to do after this English class?</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Grammar: Let's",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in">
+                        <div class="text-center mb-10">
+                            <h2 class="font-title text-6xl text-white tracking-widest mb-4 uppercase">Suggestions</h2>
+                        </div>
+                        <h3 class="font-bold text-3xl text-sysGreen mb-6 font-mono border-b border-white/10 pb-4">3. LET'S 💡</h3>
+                        <div class="game-card p-10 rounded-2xl shadow-xl border-l-4 border-sysGreen">
+                            <p class="text-xl text-white/80 mb-6 font-medium">Use <strong class="text-sysGreen">Let's + Verb</strong> to suggest doing something together.</p>
+                            <div class="bg-black/30 p-8 rounded-xl border border-white/5 mb-8 flex flex-col items-center text-center">
+                                <p class="text-3xl font-bold text-white mb-4">"<span class="text-sysGreen">Let's</span> go together."</p>
+                                <p class="text-white/70 text-lg">"Okay then, <span class="text-sysGreen">let's</span> do our best."</p>
+                            </div>
+                            <div class="stt-box p-6 bg-white/5 rounded-xl border-l-sysGreen">
+                                <span class="text-xs font-mono text-sysGreen block mb-2 uppercase tracking-widest">Speak:</span>
+                                <p class="text-white text-lg">Suggest an activity to do with the teacher! "Let's..."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Grammar: Gonna",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in">
+                        <div class="text-center mb-10">
+                            <h2 class="font-title text-6xl text-white tracking-widest mb-4 uppercase">Spoken English</h2>
+                        </div>
+                        <h3 class="font-bold text-3xl text-yellow-400 mb-6 font-mono border-b border-white/10 pb-4">4. GONNA 🗣️</h3>
+                        <div class="game-card p-10 rounded-2xl shadow-xl border-l-4 border-yellow-400">
+                            <p class="text-xl text-white/80 mb-6 font-medium">In movies, music, and daily life, people say <strong class="text-yellow-400">GONNA</strong> instead of "going to".</p>
+                            <div class="bg-black/30 p-8 rounded-xl border border-white/5 mb-8 flex flex-col items-center text-center">
+                                <p class="text-3xl font-bold text-white mb-4">"You just <span class="text-yellow-400">gonna</span> stay here?"</p>
+                                <p class="text-3xl font-bold text-white mb-4">"I'm <span class="text-yellow-400">gonna</span> get a better look."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // ----------------------------------------------------------------------
+            // GAUNTLET: NEW MECHANICS DRILLS (16-25)
+            // ----------------------------------------------------------------------
+
+            // 16. M4: TIME ATTACK
+            {
+                title: "Gauntlet: Time Attack",
+                html: `
+                    <div class="w-full max-w-3xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-5xl text-alertRed mb-4 tracking-widest uppercase animate-pulse"><i class="fa-solid fa-stopwatch mr-3"></i>Time Attack</h2>
+                        <p class="font-mono text-gray-400 mb-8 text-sm">Decide quickly before the system collapses.</p>
+                        
+                        <div class="game-card p-12 rounded-2xl shadow-2xl border-t-4 border-alertRed" id="drill-1">
+                            <div class="timer-track" id="timer-bg-1"><div class="timer-fill" id="timer-bar-1"></div></div>
+                            
+                            <p class="text-3xl font-body text-white mb-12">"I am _____ Earth with Hugh."</p>
+                            <div class="grid grid-cols-2 gap-6">
+                                <button onclick="checkTimeAttack(this, false, 1)" class="combat-btn text-white p-6 rounded-xl font-bold text-2xl" id="btn1-1">going</button>
+                                <button onclick="checkTimeAttack(this, true, 1)" class="combat-btn text-white p-6 rounded-xl font-bold text-2xl" id="btn1-2">going to</button>
+                            </div>
+                            <div class="stt-box p-6 mt-10 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-1">
+                                <p class="text-holoCyan font-bold text-xl mb-1">SYSTEM STABILIZED</p>
+                                <p class="text-gray-300">You must use 'going TO' a place.</p>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                onLoad: () => { startTimer(1, 8); }
+            },
+
+            // 17. M3: TERMINAL AUTH (SWIPE)
+            {
+                title: "Gauntlet: Auth Check",
+                html: `
+                    <div class="w-full max-w-3xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-5xl text-holoCyan mb-4 tracking-widest uppercase"><i class="fa-solid fa-shield-halved mr-3"></i>Terminal Auth</h2>
+                        <p class="font-mono text-gray-400 mb-8 text-sm">Verify the integrity of this syntax.</p>
+                        
+                        <div class="game-card p-12 rounded-2xl shadow-2xl" id="drill-2">
+                            <div class="bg-black/60 border border-white/10 p-10 mb-10 rounded">
+                                <p class="text-3xl font-body text-white">"Okay then, <span class="text-alertRed font-bold">let</span> go together."</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-6">
+                                <button onclick="checkAuth(this, false, 2)" class="auth-valid border border-white/20 text-white p-6 rounded font-mono font-bold text-xl transition-all uppercase">
+                                    <i class="fa-solid fa-check text-sysGreen block text-3xl mb-2"></i> Syntax Valid
+                                </button>
+                                <button onclick="checkAuth(this, true, 2)" class="auth-corrupt border border-white/20 text-white p-6 rounded font-mono font-bold text-xl transition-all uppercase">
+                                    <i class="fa-solid fa-xmark text-alertRed block text-3xl mb-2"></i> Corrupted
+                                </button>
+                            </div>
+                            <div class="stt-box p-6 mt-10 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-2">
+                                <p class="text-holoCyan font-bold text-xl mb-1">CORRUPTION DETECTED</p>
+                                <p class="text-gray-300">It must be "Let's" (Let us).</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // 18. M2: SENTENCE BUILDER
+            {
+                title: "Gauntlet: Constructor",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in text-center">
+                        <h2 class="font-title text-5xl text-sysGreen mb-4 tracking-widest uppercase"><i class="fa-solid fa-cubes mr-3"></i>Data Constructor</h2>
+                        <p class="font-mono text-gray-400 mb-8 text-sm">Reassemble the fragmented string.</p>
+                        
+                        <div class="game-card p-12 rounded-2xl shadow-2xl border-t-4 border-sysGreen" id="drill-3">
+                            <p class="text-xl font-body text-gray-300 mb-6">"It's a plan for the future."</p>
+                            
+                            <!-- Build Area -->
+                            <div id="build-zone-3" class="build-slot bg-black/50 rounded flex flex-wrap items-center gap-3 p-6 mb-10 w-full min-h-[100px]"></div>
+                            
+                            <!-- Word Bank -->
+                            <div id="bank-3" class="flex flex-wrap justify-center gap-4">
+                                <!-- JS will inject words -->
+                            </div>
+
+                            <button id="btn-check-3" onclick="checkBuilder(3, 'We are going to buy a house.')" class="mt-10 px-10 py-3 border border-sysGreen text-sysGreen hover:bg-sysGreen hover:text-black font-mono font-bold tracking-widest uppercase transition-all opacity-50 pointer-events-none">Verify Sequence</button>
+
+                            <div class="stt-box p-6 mt-8 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-3">
+                                <p class="text-holoCyan font-bold text-xl mb-1">SEQUENCE ACCEPTED</p>
+                                <p class="text-gray-300">Subject + Verb To Be + Going to + Verb.</p>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                onLoad: () => { initBuilder(3, ["house.", "are", "buy", "going", "We", "to", "a"]); }
+            },
+
+            // 19. M6: SLOT MACHINE
+            {
+                title: "Gauntlet: Decryptor",
+                html: `
+                    <div class="w-full max-w-3xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-5xl text-holoCyan mb-4 tracking-widest uppercase"><i class="fa-solid fa-arrows-spin mr-3"></i>Logic Decryptor</h2>
+                        <p class="font-mono text-gray-400 mb-8 text-sm">Cycle the node to find the correct data.</p>
+                        
+                        <div class="game-card p-12 rounded-2xl shadow-2xl" id="drill-4">
+                            <p class="text-xl text-gray-300 mb-8 font-body">"You make a <span class="text-holoCyan font-bold">LOUSY</span> friend."</p>
+                            
+                            <div class="flex items-center justify-center gap-4 mb-10">
+                                <span class="text-3xl font-body text-white">Meaning:</span>
+                                <button id="slot-4" class="slot-btn px-6 py-3 rounded" onclick="cycleSlot('slot-4', ['Very happy', 'Very bad', 'Very strong', 'Very rich'])">Very happy</button>
+                            </div>
+                            
+                            <button id="lock-4" onclick="checkSlot('slot-4', 'Very bad', 4)" class="px-10 py-3 border border-white/20 text-white hover:border-holoCyan hover:text-holoCyan font-mono font-bold tracking-widest uppercase transition-all">Lock In Data</button>
+
+                            <div class="stt-box p-6 mt-10 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-4">
+                                <p class="text-holoCyan font-bold text-xl mb-1">DECRYPTED</p>
+                                <p class="text-gray-300">Lousy = Very bad / poor quality.</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // 20. M1: BUG HUNTER
+            {
+                title: "Gauntlet: Bug Hunter",
+                html: `
+                    <div class="w-full max-w-3xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-5xl text-alertRed mb-4 tracking-widest uppercase"><i class="fa-solid fa-bug mr-3"></i>Bug Hunter</h2>
+                        <p class="font-mono text-gray-400 mb-8 text-sm">Click the word that is causing the syntax error.</p>
+                        
+                        <div class="game-card p-12 rounded-2xl shadow-2xl border-t-4 border-alertRed" id="drill-5">
+                            <p class="text-xl text-gray-400 mb-8">Question about future plans:</p>
+                            
+                            <div class="bg-black/50 p-8 rounded border border-white/10 mb-10 text-3xl font-body text-white leading-loose">
+                                "What <span class="bug-word" onclick="checkBug(this, true, 5)">do</span> you <span class="bug-word" onclick="checkBug(this, false, 5)">going</span> <span class="bug-word" onclick="checkBug(this, false, 5)">to</span> <span class="bug-word" onclick="checkBug(this, false, 5)">do</span>?"
+                            </div>
+
+                            <div class="stt-box p-6 mt-10 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-5">
+                                <p class="text-holoCyan font-bold text-xl mb-1">BUG REMOVED</p>
+                                <p class="text-gray-300">Questions use the Verb To Be: "What <strong class="text-white">are</strong> you going to do?"</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // 21. M5: DIALOGUE WHEEL (RPG)
+            {
+                title: "Gauntlet: Interaction",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in text-center">
+                        <h2 class="font-title text-5xl text-lunarWhite mb-4 tracking-widest uppercase"><i class="fa-solid fa-user-astronaut mr-3"></i>Dialogue Protocol</h2>
+                        <p class="font-mono text-gray-400 mb-8 text-sm">Respond to the hologram with the correct syntax.</p>
+                        
+                        <div class="game-card p-10 rounded-2xl shadow-2xl" id="drill-6">
+                            
+                            <div class="flex flex-col items-center mb-10 border-b border-white/10 pb-8">
+                                <div class="w-24 h-24 rounded-full bg-holoCyan/20 flex items-center justify-center border border-holoCyan/50 mb-4 shadow-neon-cyan relative overflow-hidden">
+                                    <div class="absolute inset-0 scanlines opacity-50"></div>
+                                    <i class="fa-solid fa-child text-4xl text-holoCyan relative z-10"></i>
+                                </div>
+                                <span class="font-mono text-holoCyan text-xs uppercase tracking-widest mb-2">Hologram Girl</span>
+                                <p class="text-2xl text-white font-body italic">"You are leaving the base. What is your plan?"</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-4 max-w-xl mx-auto">
+                                <button onclick="checkCombat(this, false, 6)" class="combat-btn text-left text-white p-4 rounded font-body text-lg border-l-4 border-l-transparent hover:border-l-holoCyan">
+                                    <span class="text-holoCyan font-bold mr-2">A.</span> "I going to depart."
+                                </button>
+                                <button onclick="checkCombat(this, true, 6)" class="combat-btn text-left text-white p-4 rounded font-body text-lg border-l-4 border-l-transparent hover:border-l-holoCyan">
+                                    <span class="text-holoCyan font-bold mr-2">B.</span> "I'm gonna get a better look."
+                                </button>
+                                <button onclick="checkCombat(this, false, 6)" class="combat-btn text-left text-white p-4 rounded font-body text-lg border-l-4 border-l-transparent hover:border-l-holoCyan">
+                                    <span class="text-holoCyan font-bold mr-2">C.</span> "I depart tomorrow."
+                                </button>
+                            </div>
+
+                            <div class="stt-box p-6 mt-8 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-6">
+                                <p class="text-holoCyan font-bold text-xl mb-1">RESPONSE ACCEPTED</p>
+                                <p class="text-gray-300">Perfect! 'I am gonna' = 'I am going to'.</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // 22. M4: TIME ATTACK 2
+            {
+                title: "Gauntlet: Time Attack",
+                html: `
+                    <div class="w-full max-w-3xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-5xl text-alertRed mb-4 tracking-widest uppercase animate-pulse"><i class="fa-solid fa-stopwatch mr-3"></i>Time Attack</h2>
+                        
+                        <div class="game-card p-12 rounded-2xl shadow-2xl border-t-4 border-alertRed" id="drill-7">
+                            <div class="timer-track" id="timer-bg-7"><div class="timer-fill" id="timer-bar-7"></div></div>
+                            
+                            <p class="text-xl text-gray-400 mb-6 font-medium">To ask a question:</p>
+                            <p class="text-3xl font-body text-white mb-12">"_____ you going to eat that?"</p>
+                            <div class="grid grid-cols-2 gap-6">
+                                <button onclick="checkTimeAttack(this, false, 7)" class="combat-btn text-white p-6 rounded-xl font-bold text-2xl" id="btn7-1">Do</button>
+                                <button onclick="checkTimeAttack(this, true, 7)" class="combat-btn text-white p-6 rounded-xl font-bold text-2xl" id="btn7-2">Are</button>
+                            </div>
+                            <div class="stt-box p-6 mt-10 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-7">
+                                <p class="text-holoCyan font-bold text-xl mb-1">SYSTEM STABILIZED</p>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                onLoad: () => { startTimer(7, 8); }
+            },
+
+            // 23. M6: SLOT MACHINE 2
+            {
+                title: "Gauntlet: Decryptor",
+                html: `
+                    <div class="w-full max-w-3xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-5xl text-holoCyan mb-4 tracking-widest uppercase"><i class="fa-solid fa-arrows-spin mr-3"></i>Logic Decryptor</h2>
+                        
+                        <div class="game-card p-12 rounded-2xl shadow-2xl" id="drill-8">
+                            <p class="text-xl text-gray-300 mb-8 font-body">Suggest doing something together:</p>
+                            
+                            <div class="flex items-center justify-center gap-4 mb-10 flex-wrap">
+                                <button id="slot-8" class="slot-btn px-6 py-3 rounded text-3xl" onclick="cycleSlot('slot-8', ['Let', 'Lets', 'Let\\'s'])">Let</button>
+                                <span class="text-3xl font-body text-white font-bold">do our best!</span>
+                            </div>
+                            
+                            <button id="lock-8" onclick="checkSlot('slot-8', 'Let\\'s', 8)" class="px-10 py-3 border border-white/20 text-white hover:border-holoCyan hover:text-holoCyan font-mono font-bold tracking-widest uppercase transition-all">Lock In Data</button>
+
+                            <div class="stt-box p-6 mt-10 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-8">
+                                <p class="text-holoCyan font-bold text-xl mb-1">DECRYPTED</p>
+                                <p class="text-gray-300">Don't forget the apostrophe 's (us).</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // 24. M3: TERMINAL AUTH (SWIPE 2)
+            {
+                title: "Gauntlet: Auth Check",
+                html: `
+                    <div class="w-full max-w-3xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-5xl text-holoCyan mb-4 tracking-widest uppercase"><i class="fa-solid fa-shield-halved mr-3"></i>Terminal Auth</h2>
+                        
+                        <div class="game-card p-12 rounded-2xl shadow-2xl" id="drill-9">
+                            <p class="text-gray-400 mb-6 font-mono text-sm">Meaning: "To leave a place for a journey"</p>
+                            <div class="bg-black/60 border border-white/10 p-10 mb-10 rounded">
+                                <p class="text-3xl font-body text-white">"I was preparing to <span class="text-sysGreen font-bold">depart</span> for Earth."</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-6">
+                                <button onclick="checkAuth(this, true, 9)" class="auth-valid border border-white/20 text-white p-6 rounded font-mono font-bold text-xl transition-all uppercase">
+                                    <i class="fa-solid fa-check text-sysGreen block text-3xl mb-2"></i> Syntax Valid
+                                </button>
+                                <button onclick="checkAuth(this, false, 9)" class="auth-corrupt border border-white/20 text-white p-6 rounded font-mono font-bold text-xl transition-all uppercase">
+                                    <i class="fa-solid fa-xmark text-alertRed block text-3xl mb-2"></i> Corrupted
+                                </button>
+                            </div>
+                            <div class="stt-box p-6 mt-10 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-9">
+                                <p class="text-holoCyan font-bold text-xl mb-1">ACCESS GRANTED</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // 25. M1: BUG HUNTER 2
+            {
+                title: "Gauntlet: Bug Hunter",
+                html: `
+                    <div class="w-full max-w-3xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-5xl text-alertRed mb-4 tracking-widest uppercase"><i class="fa-solid fa-bug mr-3"></i>Bug Hunter</h2>
+                        
+                        <div class="game-card p-12 rounded-2xl shadow-2xl border-t-4 border-alertRed" id="drill-10">
+                            <p class="text-xl text-gray-400 mb-8">Find the error in the slang question:</p>
+                            
+                            <div class="bg-black/50 p-8 rounded border border-white/10 mb-10 text-3xl font-body text-white leading-loose">
+                                "<span class="bug-word" onclick="checkBug(this, true, 10)">Do</span> <span class="bug-word" onclick="checkBug(this, false, 10)">you</span> <span class="bug-word" onclick="checkBug(this, false, 10)">gonna</span> <span class="bug-word" onclick="checkBug(this, false, 10)">stay</span> <span class="bug-word" onclick="checkBug(this, false, 10)">here</span>?"
+                            </div>
+
+                            <div class="stt-box p-6 mt-10 hidden slide-up text-left bg-black/40 rounded-xl border-holoCyan" id="fb-10">
+                                <p class="text-holoCyan font-bold text-xl mb-1">BUG REMOVED</p>
+                                <p class="text-gray-300">We still use the Verb To Be with 'gonna': "<strong class="text-white">Are</strong> you gonna stay here?"</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // ----------------------------------------------------------------------
+            // 26-28. PRONUNCIATION
+            {
+                title: "Pronunciation: Gonna",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in text-center">
+                        <h2 class="font-title text-6xl text-white mb-10 tracking-widest uppercase border-b border-white/10 pb-6">Connected Speech</h2>
+                        <div class="game-card p-12 rounded-3xl mb-10 shadow-2xl">
+                            <p class="text-2xl text-gray-300 mb-10 font-body">In English, "Going to" becomes <strong class="text-yellow-400 font-bold">GONNA</strong> very naturally.</p>
+                            <div class="flex justify-around items-center mt-8">
+                                <div class="text-center">
+                                    <p class="text-4xl font-bold text-white mb-4 line-through decoration-alertRed decoration-4">I am going to do it.</p>
+                                    <p class="text-yellow-400 font-mono text-3xl font-bold">"I'm gonna do it."</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Pronunciation: Let's",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in text-center">
+                        <h2 class="font-title text-6xl text-white mb-10 tracking-widest uppercase border-b border-white/10 pb-6">Connected Speech</h2>
+                        <div class="game-card p-12 rounded-3xl mb-10 shadow-2xl">
+                            <p class="text-2xl text-gray-300 mb-10 font-body">"Let's" is pronounced fast, almost like one letter: <strong class="text-sysGreen font-bold">/लेट्स/</strong></p>
+                            <div class="flex justify-around items-center mt-8">
+                                <div class="text-center">
+                                    <p class="text-4xl font-bold text-white mb-4 line-through decoration-alertRed decoration-4">Let us go.</p>
+                                    <p class="text-sysGreen font-mono text-3xl font-bold">"Let's go."</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Pronunciation: Practice",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in text-center">
+                        <h2 class="font-title text-6xl text-white mb-10 tracking-widest uppercase">Practice Time!</h2>
+                        <div class="stt-box p-12 game-card rounded-3xl shadow-xl">
+                            <span class="text-sm text-holoCyan font-mono font-bold uppercase tracking-widest block mb-6 drop-shadow-sm">Read out loud fast:</span>
+                            <p class="text-white text-4xl font-bold mb-8">"I'm <span class="text-yellow-400">gonna</span> depart for Earth."</p>
+                            <p class="text-white text-4xl font-bold mb-8">"<span class="text-sysGreen">Let's</span> do our best."</p>
+                            <p class="text-white text-4xl font-bold">"We're <span class="text-yellow-400">gonna</span> stay here."</p>
+                        </div>
+                    </div>
+                `
+            },
+            // 29-31. MORAL SLIDER
+            {
+                title: "Your Choice: Home",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-6xl text-white mb-12 tracking-widest uppercase">Leaving Home</h2>
+                        <div class="game-card p-14 rounded-3xl shadow-2xl">
+                            <div class="flex justify-between font-body font-bold text-xl md:text-2xl mb-12">
+                                <span class="text-white drop-shadow-md">Stay where it's safe 🏠</span>
+                                <span class="text-white drop-shadow-md">Explore the unknown 🚀</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="50" class="shadow-lg">
+                            <div class="stt-box p-8 mt-16 text-left game-card rounded-2xl">
+                                <span class="text-sm font-mono text-gray-400 font-bold uppercase tracking-widest block mb-3">Speak:</span>
+                                <p class="text-white text-2xl font-medium font-body">"I prefer to... because..."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Your Choice: Companions",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-6xl text-white mb-12 tracking-widest uppercase">Companionship</h2>
+                        <div class="game-card p-14 rounded-3xl shadow-2xl">
+                            <div class="flex justify-between font-body font-bold text-xl md:text-2xl mb-12">
+                                <span class="text-white drop-shadow-md">Travel ALONE 🐺</span>
+                                <span class="text-white drop-shadow-md">Travel with a TEAM 🫂</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="50" class="shadow-lg">
+                            <div class="stt-box p-8 mt-16 text-left game-card rounded-2xl border-l-gray-400">
+                                <span class="text-sm font-mono text-gray-400 font-bold uppercase tracking-widest block mb-3">Speak:</span>
+                                <p class="text-white text-2xl font-medium font-body">"When I travel, I like to go..."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Your Choice: Robots",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-16 fade-in text-center">
+                        <h2 class="font-title text-6xl text-white mb-12 tracking-widest uppercase">The Future</h2>
+                        <div class="game-card p-14 rounded-3xl shadow-2xl border-t-4 border-alertRed">
+                            <div class="flex justify-between font-body font-bold text-xl md:text-2xl mb-12">
+                                <span class="text-alertRed drop-shadow-md">Robots are DANGEROUS 🤖</span>
+                                <span class="text-holoCyan drop-shadow-md">Robots are FRIENDS 🤝</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="50" class="shadow-lg" style="background: rgba(255,0,60,0.2);">
+                            <div class="stt-box p-8 mt-16 text-left game-card rounded-2xl border-l-alertRed">
+                                <span class="text-sm font-mono text-alertRed font-bold uppercase tracking-widest block mb-3">Speak:</span>
+                                <p class="text-white text-2xl font-medium font-body">"I think AI is..."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            // 32-35. SPEAKING
+            {
+                title: "Speaking: Interview",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in text-center">
+                        <i class="fa-solid fa-microphone-lines text-7xl text-holoCyan mb-8 drop-shadow-neon-cyan"></i>
+                        <h2 class="font-title text-6xl text-white mb-10 tracking-widest uppercase">Interview the Teacher</h2>
+                        <div class="game-card p-12 rounded-3xl text-left border-l-4 border-holoCyan shadow-[0_0_40px_rgba(0,240,255,0.15)]">
+                            <p class="text-gray-300 text-2xl mb-8 font-body">Ask your teacher 2 questions using "Are you going to...":</p>
+                            <ul class="space-y-6 text-white text-2xl font-body font-bold ml-6">
+                                <li>👉 What <span class="text-holoCyan">are you going to</span> eat for dinner?</li>
+                                <li>👉 <span class="text-holoCyan">Are you going to</span> travel next year?</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Speaking: Roleplay 1",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in text-center">
+                        <i class="fa-solid fa-user-astronaut text-7xl text-white mb-8 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]"></i>
+                        <h2 class="font-title text-6xl text-white mb-10 tracking-widest uppercase">Roleplay: The Astronaut</h2>
+                        <div class="game-card p-12 rounded-3xl text-left shadow-2xl">
+                            <p class="text-gray-300 text-2xl mb-8 font-body">Imagine you are the astronaut. The base is destroyed.</p>
+                            <p class="text-white text-xl font-body mb-6">Tell the little girl your plan using <strong class="text-holoCyan">"I am going to"</strong>.</p>
+                            <div class="bg-black/50 p-6 rounded-xl border border-white/10 mb-8">
+                                <p class="text-white text-2xl font-body italic">"Listen. I am going to..."</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: "Speaking: Suggestion",
+                html: `
+                    <div class="w-full max-w-4xl mx-auto px-4 py-12 fade-in text-center">
+                        <i class="fa-solid fa-handshake-angle text-7xl text-sysGreen mb-8 drop-shadow-neon-green"></i>
+                        <h2 class="font-title text-6xl text-white mb-10 tracking-widest uppercase">Let's Do It</h2>
+                        <div class="game-card p-12 rounded-3xl text-left shadow-2xl border-l-4 border-sysGreen">
+                            <p class="text-white text-2xl mb-8 font-body">You have a free weekend. Make 3 suggestions to the teacher using <strong class="text-sysGreen font-bold">"Let's"</strong>.</p>
+                            <ul class="space-y-4 text-white text-xl font-bold font-mono ml-6 mt-6">
+                                <li>👉 "Let's go to..."</li>
+                                <li>👉 "Let's eat..."</li>
+                                <li>👉 "Let's watch..."</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            // 36. INTERACTIVE GIG (RPG)
+            {
+                title: "Interactive GIG",
+                html: `
+                    <div class="w-full max-w-5xl mx-auto px-4 py-12 flex flex-col h-full items-center justify-center fade-in text-center">
+                        <h2 class="font-title text-7xl text-holoCyan mb-4 uppercase tracking-widest drop-shadow-neon-cyan"><i class="fa-solid fa-meteor mr-3 animate-bounce"></i>MOONQUAKE DETECTED</h2>
+                        <p class="font-mono text-gray-400 mb-10 uppercase text-sm tracking-widest">Your choices affect your Data (XP) and Oxygen (HP).</p>
+                        
+                        <div id="narrative-gameplay" class="w-full bg-black/60 border border-holoCyan/30 shadow-[0_0_40px_rgba(0,240,255,0.1)] p-12 rounded-2xl min-h-[450px] flex flex-col justify-between">
+                            <!-- Content injected via playNarrative() -->
+                        </div>
+                    </div>
+                `,
+                onLoad: () => playNarrative('start')
+            },
+            // 37. FINAL
+            {
+                title: "Episode Complete",
+                html: `
+                    <div class="w-full h-full flex flex-col items-center justify-center text-center px-4 fade-in">
+                        <i class="fa-solid fa-shuttle-space text-8xl text-holoCyan mb-8 drop-shadow-neon-cyan"></i>
+                        <h1 class="font-title text-7xl md:text-9xl text-white mb-6 tracking-widest drop-shadow-lg uppercase">Earth Reached</h1>
+                        <p class="text-white/70 text-2xl mb-12 font-mono font-medium uppercase tracking-widest">You survived Pragmata.</p>
+                        
+                        <div class="flex gap-16 mb-16 game-card p-10 rounded-3xl shadow-2xl border border-white/10">
+                            <div class="flex flex-col items-center">
+                                <span class="text-white/50 text-sm uppercase tracking-widest font-bold mb-3 font-mono">Oxygen (HP)</span>
+                                <span id="final-hp" class="text-white text-5xl font-black drop-shadow-md font-body">100</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-holoCyan text-sm uppercase tracking-widest font-bold mb-3 font-mono">Data (XP)</span>
+                                <span id="final-xp" class="text-white text-5xl font-black drop-shadow-md font-body">0</span>
+                            </div>
+                        </div>
+                        <button onclick="location.reload()" class="bg-holoCyan/10 border border-holoCyan text-holoCyan font-bold text-xl rounded px-16 py-5 hover:bg-holoCyan hover:text-black transition-all shadow-neon-cyan uppercase font-mono tracking-widest">New Journey</button>
+                    </div>
+                `,
+                onLoad: () => {
+                    document.getElementById('final-hp').innerText = state.hp;
+                    document.getElementById('final-xp').innerText = state.xp;
+                }
+            }
+        ];
+
+        // --- NEW MECHANICS LOGIC ---
+
+        // M4: TIME ATTACK
+        function startTimer(drillNum, seconds) {
+            if(activeTimer) clearTimeout(activeTimer);
+            let bar = document.getElementById('timer-bar-' + drillNum);
+            let btn1 = document.getElementById('btn' + drillNum + '-1');
+            let btn2 = document.getElementById('btn' + drillNum + '-2');
+            
+            // Reset state in case they navigate back
+            if(bar) {
+                bar.style.animation = 'none';
+                void bar.offsetWidth; // trigger reflow
+                bar.classList.add('timer-anim');
+            }
+            
+            activeTimer = setTimeout(() => {
+                // If they didn't click
+                if(btn1 && !btn1.disabled) {
+                    takeDamage(20);
+                    let drillDiv = document.getElementById('drill-' + drillNum);
+                    drillDiv.classList.add('damage-flash');
+                    setTimeout(() => drillDiv.classList.remove('damage-flash'), 400);
+                    
+                    btn1.disabled = true; btn2.disabled = true;
+                    btn1.style.opacity = '0.3'; btn2.style.opacity = '0.3';
+                    
+                    let fb = document.getElementById('fb-' + drillNum);
+                    if(fb) {
+                        fb.classList.remove('hidden');
+                        fb.querySelector('p').innerText = "SYSTEM TIMEOUT";
+                        fb.querySelector('p').classList.replace('text-holoCyan', 'text-alertRed');
+                    }
+                }
+            }, seconds * 1000);
+        }
+
+        function checkTimeAttack(btn, isCorrect, num) {
+            if(activeTimer) clearTimeout(activeTimer);
+            let bar = document.getElementById('timer-bar-' + num);
+            if(bar) { bar.style.animationPlayState = 'paused'; } // stop visual timer
+            
+            const btns = btn.parentElement.querySelectorAll('button');
+            btns.forEach(b => { b.disabled = true; if(b !== btn) b.style.opacity = '0.3'; });
+            
+            if (isCorrect) {
+                btn.classList.add('correct');
+                gainXP(30);
+                document.getElementById(`drill-${num}`).classList.add('xp-flash');
+                setTimeout(() => document.getElementById(`drill-${num}`).classList.remove('xp-flash'), 500);
+                document.getElementById(`fb-${num}`).classList.remove('hidden');
+            } else {
+                btn.classList.add('wrong');
+                takeDamage(20);
+                setTimeout(() => {
+                    btns.forEach(b => { if(!b.classList.contains('wrong')){ b.disabled = false; b.style.opacity = '1'; } });
+                    if(bar) bar.style.animationPlayState = 'running';
+                    // restart timer for remaining time? For simplicity, we just let them try again without timer
+                }, 600);
+            }
+        }
+
+        // M3: TERMINAL AUTH
+        function checkAuth(btn, isValidSyntax, num) {
+            const btns = btn.parentElement.querySelectorAll('button');
+            btns.forEach(b => { b.disabled = true; if(b !== btn) b.style.opacity = '0.3'; });
+
+            if (isValidSyntax) {
+                // They correctly identified if it was valid or corrupt
+                btn.classList.add('correct'); // reuse correct style, or just let their native hover style stick
+                btn.style.background = btn.classList.contains('auth-valid') ? 'rgba(57, 255, 20, 0.2)' : 'rgba(255, 0, 60, 0.2)';
+                gainXP(20);
+                document.getElementById(`drill-${num}`).classList.add('xp-flash');
+                setTimeout(() => document.getElementById(`drill-${num}`).classList.remove('xp-flash'), 500);
+                document.getElementById(`fb-${num}`).classList.remove('hidden');
+            } else {
+                btn.classList.add('wrong');
+                takeDamage(15);
+                setTimeout(() => {
+                    btns.forEach(b => { if(!b.classList.contains('wrong')){ b.disabled = false; b.style.opacity = '1'; } });
+                }, 600);
+            }
+        }
+
+        // M2: SENTENCE BUILDER
+        function initBuilder(num, wordsArray) {
+            builtSentences[num] = [];
+            let bank = document.getElementById('bank-' + num);
+            let zone = document.getElementById('build-zone-' + num);
+            let checkBtn = document.getElementById('btn-check-' + num);
+            
+            zone.innerHTML = '';
+            checkBtn.classList.add('opacity-50', 'pointer-events-none');
+
+            // Shuffle array
+            wordsArray.sort(() => Math.random() - 0.5);
+            
+            bank.innerHTML = wordsArray.map((w, i) => 
+                `<button id="word-${num}-${i}" onclick="addToBuilder('${w}', ${num}, this.id)" class="build-word bg-panel border border-holoCyan/50 text-white px-4 py-2 rounded font-mono shadow-neon-cyan">${w}</button>`
+            ).join('');
+        }
+
+        function addToBuilder(word, num, btnId) {
+            builtSentences[num].push(word);
+            document.getElementById(btnId).style.visibility = 'hidden'; // Hide original
+            
+            let zone = document.getElementById('build-zone-' + num);
+            
+            // Create a button in the zone that can be clicked to remove it
+            let newBtn = document.createElement('button');
+            newBtn.className = "bg-holoCyan text-black px-4 py-2 rounded font-mono font-bold";
+            newBtn.innerText = word;
+            newBtn.onclick = function() {
+                // Remove from array
+                let idx = builtSentences[num].lastIndexOf(word);
+                if(idx > -1) builtSentences[num].splice(idx, 1);
+                // Remove from zone
+                zone.removeChild(this);
+                // Show original
+                document.getElementById(btnId).style.visibility = 'visible';
+                
+                document.getElementById('btn-check-' + num).classList.add('opacity-50', 'pointer-events-none');
+                zone.classList.remove('complete-correct', 'complete-wrong');
+            };
+            
+            zone.appendChild(newBtn);
+
+            // Enable check button if all words are used (checking length of original bank)
+            let bankTotal = document.getElementById('bank-' + num).children.length;
+            if(builtSentences[num].length === bankTotal) {
+                document.getElementById('btn-check-' + num).classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        function checkBuilder(num, correctSentence) {
+            let currentSentence = builtSentences[num].join(" ");
+            let zone = document.getElementById('build-zone-' + num);
+            
+            if(currentSentence === correctSentence) {
+                zone.classList.add('complete-correct');
+                zone.classList.remove('complete-wrong');
+                gainXP(40);
+                document.getElementById(`drill-${num}`).classList.add('xp-flash');
+                setTimeout(() => document.getElementById(`drill-${num}`).classList.remove('xp-flash'), 500);
+                document.getElementById(`fb-${num}`).classList.remove('hidden');
+                
+                // Disable all words in zone
+                Array.from(zone.children).forEach(c => c.onclick = null);
+                document.getElementById('btn-check-' + num).style.display = 'none';
+            } else {
+                zone.classList.add('complete-wrong');
+                takeDamage(15);
+                let drillDiv = document.getElementById(`drill-${num}`);
+                drillDiv.classList.add('damage-flash');
+                setTimeout(() => {
+                    drillDiv.classList.remove('damage-flash');
+                    zone.classList.remove('complete-wrong');
+                }, 500);
+            }
+        }
+
+        // M6: SLOT MACHINE
+        let slotData = {};
+        function cycleSlot(btnId, arrayWords) {
+            if(!slotData[btnId]) slotData[btnId] = 0;
+            slotData[btnId]++;
+            if(slotData[btnId] >= arrayWords.length) slotData[btnId] = 0;
+            
+            document.getElementById(btnId).innerText = arrayWords[slotData[btnId]];
+        }
+
+        function checkSlot(btnId, correctWord, num) {
+            let btn = document.getElementById(btnId);
+            if(btn.innerText === correctWord) {
+                btn.classList.add('locked');
+                document.getElementById('lock-' + num).style.display = 'none';
+                gainXP(20);
+                document.getElementById(`drill-${num}`).classList.add('xp-flash');
+                setTimeout(() => document.getElementById(`drill-${num}`).classList.remove('xp-flash'), 500);
+                document.getElementById(`fb-${num}`).classList.remove('hidden');
+            } else {
+                takeDamage(15);
+                let drillDiv = document.getElementById(`drill-${num}`);
+                drillDiv.classList.add('damage-flash');
+                setTimeout(() => drillDiv.classList.remove('damage-flash'), 500);
+            }
+        }
+
+        // M1: BUG HUNTER
+        function checkBug(el, isBug, num) {
+            if(el.parentElement.classList.contains('locked')) return; // already solved
+
+            if(isBug) {
+                el.classList.add('bug-found');
+                el.parentElement.classList.add('locked'); // lock container
+                
+                // Dim other words
+                Array.from(el.parentElement.children).forEach(child => {
+                    if(child !== el) child.classList.add('bug-wrong');
+                });
+
+                gainXP(30);
+                document.getElementById(`drill-${num}`).classList.add('xp-flash');
+                setTimeout(() => document.getElementById(`drill-${num}`).classList.remove('xp-flash'), 500);
+                document.getElementById(`fb-${num}`).classList.remove('hidden');
+            } else {
+                takeDamage(10);
+                let drillDiv = document.getElementById(`drill-${num}`);
+                drillDiv.classList.add('damage-flash');
+                setTimeout(() => drillDiv.classList.remove('damage-flash'), 400);
+            }
+        }
+
+
+        // --- NARRATIVE RPG LOGIC (unchanged) ---
+        const narrativeNodes = {
+            start: {
+                text: "The moon base is falling apart. You see a small robot broken on the floor. It says 'Help me'. What are you going to do?",
+                choices: [
+                    { label: "LEAVE IT", text: "I am going to run away. It's just a machine.", next: "leave" },
+                    { label: "TAKE IT", text: "Let's take it with us to Earth.", next: "take" }
+                ]
+            },
+            leave: {
+                text: "You run alone to the ship. A monster attacks you because you didn't have the robot's shield! (-30 HP)",
+                isEnd: true,
+                stt: "Why is it important to help others?",
+                action: () => { takeDamage(30); }
+            },
+            take: {
+                text: "You take the robot. It creates a shield that protects you from the falling rocks! You are safe. (+50 XP)",
+                isEnd: true,
+                stt: "Would you trust an AI robot in real life?",
+                action: () => { gainXP(50); }
+            }
+        };
+
+        function playNarrative(nodeId) {
+            const container = document.getElementById('narrative-gameplay');
+            const node = narrativeNodes[nodeId];
+
+            if (node.isEnd) {
+                container.innerHTML = `
+                    <div class="text-center fade-in flex flex-col h-full justify-center">
+                        <i class="fa-solid fa-flag-checkered text-6xl text-holoCyan mb-8 animate-pulse drop-shadow-neon-cyan"></i>
+                        <h3 class="font-title text-4xl text-white mb-6 tracking-widest uppercase">RESULT</h3>
+                        <p class="text-2xl text-gray-300 font-body leading-relaxed max-w-2xl mx-auto border-l-4 border-holoCyan pl-6">${node.text}</p>
+                        
+                        <div class="mt-12 bg-white/5 border border-white/10 p-6 rounded-lg text-left w-full">
+                            <span class="text-xs font-mono text-cyan-400 block mb-2 uppercase tracking-widest">> Follow-up Discussion:</span>
+                            <p class="text-xl text-white italic font-body">"${node.stt}"</p>
+                        </div>
+                    </div>
+                `;
+                if(node.action) node.action();
+            } else {
+                let buttonsHTML = node.choices.map(c => `
+                    <button onclick="playNarrative('${c.next}')" class="flex flex-col items-center justify-center p-8 border border-white/10 bg-panel hover:bg-white/5 hover:border-holoCyan transition-all group gap-6 rounded-xl w-full">
+                        <div class="text-center mt-auto">
+                            <span class="font-title text-3xl text-white block mb-2 tracking-widest uppercase group-hover:text-holoCyan transition-colors">${c.label}</span>
+                            <span class="text-base font-body text-gray-400 italic px-4">"${c.text}"</span>
+                        </div>
+                    </button>
+                `).join('');
+
+                container.innerHTML = `
+                    <div class="fade-in flex flex-col h-full">
+                        <p class="font-body text-2xl md:text-3xl text-white mb-12 leading-relaxed border-l-4 border-holoCyan pl-8">${node.text}</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-auto">
+                            ${buttonsHTML}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // --- 3. ENGINE LOGIC ---
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else if (document.exitFullscreen) document.exitFullscreen();
+        }
+
+        function updateHUD() {
+            document.getElementById('hp-text').innerText = state.hp;
+            document.getElementById('hp-bar').style.width = state.hp + "%";
+            document.getElementById('xp-text').innerText = state.xp;
+        }
+
+        function takeDamage(amount) {
+            state.hp = Math.max(0, state.hp - amount);
+            updateHUD();
+            document.body.classList.add('damage-flash');
+            setTimeout(() => document.body.classList.remove('damage-flash'), 400);
+            if (state.hp <= 0) { 
+                alert("Game Over! Out of Oxygen."); 
+                location.reload(); 
+            }
+        }
+
+        function gainXP(amount) { state.xp += amount; updateHUD(); }
+
+        function renderMap() {
+            const container = document.getElementById('map-nodes');
+            container.innerHTML = lessonData.map((step, i) => {
+                let color = i === state.current ? 'text-holoCyan font-bold' : (i < state.current ? 'text-white' : 'text-gray-500');
+                return `
+                <div class="flex items-center justify-between p-3 rounded cursor-pointer hover:bg-white/5 transition-colors" onclick="jumpTo(${i})">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-mono w-4 text-right ${i === state.current ? 'text-holoCyan' : 'text-gray-500'}">${i + 1}</span>
+                        <span class="text-sm font-body ${color}">${step.title}</span>
+                    </div>
+                    ${i === state.current ? '<i class="fa-solid fa-play text-holoCyan text-xs"></i>' : ''}
+                </div>
+            `}).join('');
+        }
+
+        function renderStep() {
+            closeJIT();
+            if(activeTimer) clearTimeout(activeTimer); // Clear any running timers
+
+            const stage = document.getElementById('engine-stage');
+            stage.innerHTML = lessonData[state.current].html;
+            
+            let displayNum = state.current + 1;
+            document.getElementById('current-step-display').innerText = displayNum < 10 ? `0${displayNum}` : displayNum;
+            document.getElementById('btn-prev').disabled = state.current === 0;
+            document.getElementById('btn-next').disabled = state.current === lessonData.length - 1;
+            
+            if (lessonData[state.current].onLoad) lessonData[state.current].onLoad();
+            renderMap();
+            updateHUD();
+        }
+
+        function nextStep() { if (state.current < lessonData.length - 1) { state.current++; renderStep(); } }
+        function prevStep() { if (state.current > 0) { state.current--; renderStep(); } }
+        function jumpTo(idx) { state.current = idx; renderStep(); toggleDrawer('lesson-map'); }
+
+        function toggleDrawer(id) {
+            const drawers = ['lesson-map', 'jit-panel', 'tactical-board'];
+            drawers.forEach(drawerId => {
+                const drawer = document.getElementById(drawerId);
+                if (!drawer) return;
+                
+                if (drawerId === id) {
+                    if (drawer.classList.contains('translate-x-full') || drawer.classList.contains('-translate-x-full')) {
+                        drawer.classList.remove('translate-x-full', '-translate-x-full');
+                    } else {
+                        if (id === 'lesson-map') drawer.classList.add('-translate-x-full');
+                        else drawer.classList.add('translate-x-full');
+                    }
+                } else {
+                    if (drawerId === 'lesson-map') drawer.classList.add('-translate-x-full');
+                    else drawer.classList.add('translate-x-full');
+                }
+            });
+        }
+
+        function clearNotes() {
+            document.getElementById('t-notes').value = '';
+            document.getElementById('t-notes').focus();
+        }
+
+        function revealIntel(key, el = null) {
+            const data = intelDB[key];
+            if (!data) return;
+            
+            if (el) {
+                document.querySelectorAll('.jit-word').forEach(r => r.classList.remove('active'));
+                el.classList.add('active');
+            }
+            
+            document.getElementById('jit-content').innerHTML = `
+                <div class="flex flex-col items-center text-center mb-8 fade-in">
+                    <span class="text-7xl mb-6 drop-shadow-lg">${data.emoji}</span>
+                    <h2 class="font-title tracking-widest text-4xl text-white mb-2 drop-shadow-md">${data.title}</h2>
+                    <span class="text-holoCyan font-mono text-xs uppercase tracking-widest">${data.type}</span>
+                </div>
+                <div class="mb-6 slide-up">
+                    <p class="text-gray-400 text-xs uppercase font-mono tracking-widest mb-2">Meaning</p>
+                    <p class="text-white text-xl font-body leading-relaxed">${data.meaning}</p>
+                </div>
+                <div class="bg-black/50 p-6 rounded-xl slide-up border-l-2 border-holoCyan" style="animation-delay: 0.1s">
+                    <p class="text-holoCyan text-xs uppercase font-mono tracking-widest mb-2">Subtitle</p>
+                    <p class="text-white text-lg italic font-body">"${data.example}"</p>
+                </div>
+                ${data.followUp ? `
+                <div class="stt-box p-6 mt-6 bg-white/5 rounded-xl shadow-lg slide-up" style="animation-delay: 0.2s">
+                    <span class="text-xs text-holoCyan uppercase font-mono tracking-widest mb-2 block">Speak:</span>
+                    <p class="text-white text-base font-body italic">"${data.followUp}"</p>
+                </div>
+                ` : ''}
+            `;
+            document.getElementById('intel-panel').classList.remove('translate-x-full');
+        }
+        
+        function closeJIT() { 
+            document.getElementById('jit-panel').classList.add('translate-x-full'); 
+            document.querySelectorAll('.jit-word').forEach(r => r.classList.remove('active'));
+        }
+
+        // Standard Combat (kept for Dialogue Wheel)
+        function checkCombat(btn, isCorrect, num) {
+            const btns = btn.parentElement.querySelectorAll('.combat-btn');
+            btns.forEach(b => { b.disabled = true; if(b !== btn) b.style.opacity = '0.3'; });
+            
+            if (isCorrect) {
+                btn.classList.add('correct');
+                gainXP(20);
+                document.getElementById(`drill-${num}`).classList.add('xp-flash');
+                setTimeout(() => document.getElementById(`drill-${num}`).classList.remove('xp-flash'), 500);
+                document.getElementById(`fb-${num}`).classList.remove('hidden');
+            } else {
+                btn.classList.add('wrong');
+                takeDamage(15);
+                setTimeout(() => {
+                    btns.forEach(b => { if(!b.classList.contains('wrong')){ b.disabled = false; b.style.opacity = '1'; } });
+                }, 600);
+            }
+        }
+
+        window.onload = renderStep;
+    </script>
+</body>
+</html>
